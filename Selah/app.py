@@ -26,22 +26,23 @@ for file_name in ["notes_data.json", "user_stats.json", "quizzes.json"]:
     file_path = os.path.join("data", file_name)
     if not os.path.exists(file_path):
         with open(file_path, "w", encoding="utf-8") as f:
-            if file_name == "user_stats.json":
-                f.write("[]")  # Journal entries as list
-            else:
-                f.write("[]")  # Empty list for notes/quizzes
+            f.write("[]")  # Empty list for notes, journal, quizzes
+
 
 ### Module 1: Notes Manager ###
 if choice == "Notes Manager 📄":
     st.header("📄 Notes Manager")
-    
+
     notes = notes_manager.load_notes()
-    
+
     # Display notes titles for selection
     titles = [note["title"] for note in notes]
-    selected_note_index = st.selectbox("Select a note to view or edit", options=[-1]+list(range(len(titles))),
-                                       format_func=lambda x: "New Note" if x == -1 else titles[x])
-    
+    selected_note_index = st.selectbox(
+        "Select a note to view or edit",
+        options=[-1] + list(range(len(titles))),
+        format_func=lambda x: "New Note" if x == -1 else titles[x]
+    )
+
     if selected_note_index == -1:
         # New note UI
         new_title = st.text_input("Note Title")
@@ -69,15 +70,27 @@ if choice == "Notes Manager 📄":
             st.success("Note deleted.")
             st.experimental_rerun()
 
+
 ### Module 2: Speech to Text ###
 elif choice == "Speech to Text 🎙️":
-    st.header("🎙️ Speech to Text (Offline Dictation)")
-    st.write("Press the button and speak clearly for 5 seconds.")
-    
-    if st.button("Start Dictation"):
-        # Vosk model path (assumed to be in project root folder)
-        text = speech_to_text.offline_speech_to_text(duration=5)
+    st.header("🎙️ Speech to Text (Offline Audio File Transcription)")
+
+    st.write(
+        """
+        Upload a WAV audio file (Mono PCM, 16kHz) recorded offline to transcribe it.
+        Live microphone recording is disabled due to deployment limitations.
+        """
+    )
+
+    uploaded_audio = st.file_uploader("Upload WAV audio file", type=["wav"])
+    if uploaded_audio is not None:
+        save_path = os.path.join("data", "temp_uploaded.wav")
+        with open(save_path, "wb") as f:
+            f.write(uploaded_audio.getbuffer())
+
+        text = speech_to_text.transcribe_uploaded_audio(save_path)
         st.text_area("Transcribed Text:", value=text, height=150)
+
 
 ### Module 3: Q&A from Notes ###
 elif choice == "Q&A from Notes ❓":
@@ -91,6 +104,7 @@ elif choice == "Q&A from Notes ❓":
             answer = qa_from_notes.answer_query(question.strip(), notes)
             st.success("Answer:")
             st.write(answer)
+
 
 ### Module 4: Reflective Journal ###
 elif choice == "Reflective Journal 📔":
@@ -113,6 +127,7 @@ elif choice == "Reflective Journal 📔":
     else:
         for entry in reversed(entries[-5:]):  # show last 5 entries
             st.markdown(f"**{entry['date']}**: {entry['entry']}")
+
 
 ### Module 5: Google Drive Sync ###
 elif choice == "Google Drive Sync ☁️ (Optional)":
